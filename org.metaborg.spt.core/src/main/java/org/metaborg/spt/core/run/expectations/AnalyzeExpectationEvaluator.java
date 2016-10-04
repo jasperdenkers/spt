@@ -33,16 +33,19 @@ public class AnalyzeExpectationEvaluator implements ISpoofaxExpectationEvaluator
 
     private static final ILogger logger = LoggerUtils.logger(AnalyzeExpectationEvaluator.class);
 
-    @Override public Collection<Integer> usesSelections(IFragment fragment, AnalysisMessageExpectation expectation) {
+    @Override
+    public Collection<Integer> usesSelections(IFragment fragment, AnalysisMessageExpectation expectation) {
         return Lists.newArrayList(expectation.selections());
     }
 
-    @Override public TestPhase getPhase(IContext unused, AnalysisMessageExpectation expectation) {
+    @Override
+    public TestPhase getPhase(IContext unused, AnalysisMessageExpectation expectation) {
         return TestPhase.ANALYSIS;
     }
 
-    @Override public ISpoofaxTestExpectationOutput evaluate(
-        ITestExpectationInput<ISpoofaxParseUnit, ISpoofaxAnalyzeUnit> input, AnalysisMessageExpectation expectation) {
+    @Override
+    public ISpoofaxTestExpectationOutput evaluate(ITestExpectationInput<ISpoofaxParseUnit, ISpoofaxAnalyzeUnit> input,
+        AnalysisMessageExpectation expectation) {
         List<IMessage> messages = Lists.newLinkedList();
         // analysis expectations don't have output fragments (not at the moment anyway)
         final Iterable<ISpoofaxFragmentResult> fragmentResults = Iterables2.empty();
@@ -116,7 +119,9 @@ public class AnalyzeExpectationEvaluator implements ISpoofaxExpectationEvaluator
         }
         if(!numOk) {
             messages.add(MessageFactory.newAnalysisError(test.getResource(), test.getDescriptionRegion(),
-                "Expected " + expectedNumMessages + " " + severity + "s, but got " + interestingMessages.size(), null));
+                "Expected " + errorStr(operation) + " " + expectedNumMessages + " " + severity + "s, but got "
+                    + interestingMessages.size(),
+                null));
         }
 
         // Check message locations
@@ -175,17 +180,17 @@ public class AnalyzeExpectationEvaluator implements ISpoofaxExpectationEvaluator
             } else {
                 // check only the selected message
                 if(!lastSelectedMsg.message().contains(content)) {
-                    logger.error("Not equal: ");
+                    logger.debug("Not equal: ");
                     String s = "";
                     for(byte b : content.getBytes()) {
                         s = (s.equals("") ? Byte.toString(b) : s + ", " + b);
                     }
-                    logger.error("Content: {}", s);
+                    logger.debug("Content: {}", s);
                     s = "";
                     for(byte b : lastSelectedMsg.message().getBytes()) {
                         s = (s.equals("") ? Byte.toString(b) : s + ", " + b);
                     }
-                    logger.error("Message: {}", s);
+                    logger.debug("Message: {}", s);
                     messages
                         .add(MessageFactory.newAnalysisError(test.getResource(), test.getDescriptionRegion(),
                             String.format("Expected a %s containing the text \"%s\", but found one with text \"%s\".",
@@ -201,6 +206,23 @@ public class AnalyzeExpectationEvaluator implements ISpoofaxExpectationEvaluator
             MessageUtil.propagateMessages(analysisMessages, messages, test.getDescriptionRegion(),
                 test.getFragment().getRegion());
             return false;
+        }
+    }
+
+    private String errorStr(Operation op) {
+        switch(op) {
+            case EQUAL:
+                return "";
+            case LESS:
+                return "less than";
+            case LESS_OR_EQUAL:
+                return "at most";
+            case MORE:
+                return "more than";
+            case MORE_OR_EQUAL:
+                return "at least";
+            default:
+                throw new IllegalArgumentException("No such operation: " + op);
         }
     }
 }
